@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INEXORA - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border-bottom: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .main-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .welcome-message {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #ff4444;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .service-card i {
+            font-size: 3rem;
+            color: #ff4444;
+            margin-bottom: 1rem;
+        }
+
+        .service-interface {
+            display: none;
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border-radius: 15px;
+        }
+
+        .voice-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+        }
+
+        .voice-btn.listening {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1 class="logo">INEXORA</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="main-container">
+        <div class="welcome-message"></div>
+
+        <div class="services-grid">
+            <div class="service-card" onclick="showService('chat')">
+                <i class="fas fa-comments"></i>
+                <h3>Chat with AI</h3>
+                <p>Have a conversation with our AI assistant</p>
+            </div>
+            <div class="service-card" onclick="showService('image')">
+                <i class="fas fa-image"></i>
+                <h3>Generate Images</h3>
+                <p>Create unique images from text descriptions</p>
+            </div>
+            <div class="service-card" onclick="showService('voice')">
+                <i class="fas fa-microphone"></i>
+                <h3>Voice Commands</h3>
+                <p>Control INEXORA with your voice</p>
+            </div>
+        </div>
+
+        <!-- Service Interfaces -->
+        <div id="chatInterface" class="service-interface">
+            <h2>Chat with AI</h2>
+            <div id="chatContainer"></div>
+            <div class="input-group">
+                <input type="text" id="chatInput" placeholder="Ask something...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <div id="imageInterface" class="service-interface">
+            <h2>Generate Image</h2>
+            <div class="input-group">
+                <input type="text" id="imagePrompt" placeholder="Describe the image...">
+                <button onclick="generateImage()">Generate</button>
+            </div>
+            <div id="imageResult"></div>
+        </div>
+
+        <div id="voiceInterface" class="service-interface">
+            <h2>Voice Commands</h2>
+            <p>Click the microphone button to start speaking</p>
+            <div id="voiceResult"></div>
+        </div>
+    </div>
+
+    <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceCommand()">
+        <i class="fas fa-microphone"></i>
+    </button>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8002/api';
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const username = localStorage.getItem('username');
+            document.querySelector('.welcome-message').textContent = `Welcome to INEXORA, ${username}!`;
+            initializeVoiceRecognition();
+        });
+
+        // Add authentication headers to all API calls
+        async function callAPI(endpoint, options = {}) {
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401) {
+                // Token expired or invalid
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            return response;
+        }
+
+        // Update your existing API calls
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessageToChat('user', message);
+            input.value = '';
+            document.getElementById('chatLoading').style.display = 'block';
+
+            try {
+                const response = await callAPI('/chat', {
+                    method: 'POST',
+                    body: JSON.stringify({ question: message })
+                });
+
+                const data = await response.json();
+                addMessageToChat('ai', data.answer);
+            } catch (error) {
+                addMessageToChat('ai', 'Sorry, there was an error processing your request.');
+            }
+
+            document.getElementById('chatLoading').style.display = 'none';
+        }
+
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value.trim();
+            if (!prompt) return;
+
+            document.getElementById('imageLoading').style.display = 'block';
+            document.getElementById('imageResult').innerHTML = '';
+
+            try {
+                const response = await callAPI('/generate-image', {
+                    method: 'POST',
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await response.json();
+                const img = document.createElement('img');
+                img.src = data.image_url;
+                img.className = 'image-result';
+                document.getElementById('imageResult').appendChild(img);
+            } catch (error) {
+                document.getElementById('imageResult').textContent = 'Error generating image';
+            }
+
+            document.getElementById('imageLoading').style.display = 'none';
+        }
+
+        async function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'recording.wav');
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/speech-to-text`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                document.getElementById('transcriptionResult').textContent = data.text;
+            } catch (error) {
+                document.getElementById('transcriptionResult').textContent = 'Error transcribing audio';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        }
+
+        function showService(service) {
+            document.querySelectorAll('.service-interface').forEach(interface => {
+                interface.style.display = 'none';
+            });
+            document.getElementById(`${service}Interface`).style.display = 'block';
+        }
+
+        // Voice command functionality
+        let recognition;
+        let isListening = false;
+
+        function initializeVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript.toLowerCase();
+                    processVoiceCommand(command);
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    document.getElementById('voiceBtn').classList.remove('listening');
+                };
+            }
+        }
+
+        function toggleVoiceCommand() {
+            if (!recognition) {
+                initializeVoiceRecognition();
+            }
+
+            if (!isListening) {
+                recognition.start();
+                isListening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+            } else {
+                recognition.stop();
+                isListening = false;
+                document.getElementById('voiceBtn').classList.remove('listening');
+            }
+        }
+
+        function processVoiceCommand(command) {
+            if (command.includes('chat')) {
+                showService('chat');
+            } else if (command.includes('image')) {
+                showService('image');
+            } else if (command.includes('voice')) {
+                showService('voice');
+            } else {
+                // Use as chat input
+                document.getElementById('chatInput').value = command;
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INEXORA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border-bottom: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .service-card i {
+            font-size: 3rem;
+            color: #ff4444;
+            margin-bottom: 1rem;
+        }
+
+        .service-interface {
+            display: none;
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.2));
+            border-radius: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .chat-container {
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .user-message {
+            background: rgba(255, 0, 0, 0.1);
+            margin-left: 20%;
+        }
+
+        .ai-message {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 20%;
+        }
+
+        .image-result {
+            margin-top: 1rem;
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .voice-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+        }
+
+        .voice-btn.listening {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+            color: #ff4444;
+        }
+
+        .loading::after {
+            content: "...";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60% { content: "..."; }
+            80% { content: "...."; }
+            100% { content: "....."; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1 class="logo">INEXORA</h1>
+    </div>
+
+    <div class="main-container">
+        <div class="services-grid">
+            <div class="service-card" onclick="showService('chat')">
+                <i class="fas fa-comments"></i>
+                <h3>Chat with AI</h3>
+                <p>Have a conversation with our AI assistant</p>
+            </div>
+            <div class="service-card" onclick="showService('image')">
+                <i class="fas fa-image"></i>
+                <h3>Generate Images</h3>
+                <p>Create unique images from text descriptions</p>
+            </div>
+            <div class="service-card" onclick="showService('voice')">
+                <i class="fas fa-microphone"></i>
+                <h3>Voice Commands</h3>
+                <p>Control INEXORA with your voice</p>
+            </div>
+        </div>
+
+        <div id="chatInterface" class="service-interface">
+            <h2>Chat with AI</h2>
+            <div id="chatContainer" class="chat-container"></div>
+            <div id="chatLoading" class="loading">Processing your request</div>
+            <div class="input-group">
+                <input type="text" id="chatInput" placeholder="Ask something..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <div id="imageInterface" class="service-interface">
+            <h2>Generate Image</h2>
+            <div class="input-group">
+                <input type="text" id="imagePrompt" placeholder="Describe the image...">
+                <button onclick="generateImage()">Generate</button>
+            </div>
+            <div id="imageResult"></div>
+        </div>
+
+        <div id="voiceInterface" class="service-interface">
+            <h2>Voice Commands</h2>
+            <p>Click the microphone button to start speaking</p>
+            <div id="voiceResult"></div>
+        </div>
+    </div>
+
+    <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceCommand()">
+        <i class="fas fa-microphone"></i>
+    </button>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8002/api';
+        let isConnected = false;
+
+        function showService(service) {
+            document.querySelectorAll('.service-interface').forEach(interface => {
+                interface.style.display = 'none';
+            });
+            document.getElementById(`${service}Interface`).style.display = 'block';
+        }
+
+        function addMessageToChat(role, content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function checkConnection() {
+            try {
+                console.log("Attempting to connect to backend...");
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                console.log("Backend response:", data);
+                
+                if (data.status === "healthy") {
+                    isConnected = true;
+                    console.log('Connected to API:', data);
+                    const existingError = document.querySelector('.error-message');
+                    if (existingError) existingError.remove();
+                } else {
+                    throw new Error(data.error || 'API health check failed');
+                }
+            } catch (error) {
+                console.error('API connection failed:', error);
+                isConnected = false;
+                showError(`⚠️ Connection Error\n\nCannot connect to server.\nPlease ensure the backend is running on port 8002.\n\nError: ${error.message}`);
+            }
+        }
+
+        function showError(message) {
+            const existingError = document.querySelector('.error-message');
+            if (existingError) existingError.remove();
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 0, 0, 0.9);
+                padding: 2rem 3rem;
+                border-radius: 10px;
+                border: 2px solid #ff4444;
+                color: white;
+                z-index: 1000;
+                text-align: center;
+                font-size: 1.2rem;
+                box-shadow: 0 4px 20px rgba(255, 0, 0, 0.4);
+                animation: fadeIn 0.3s ease-out;
+            `;
+            
+            // Add close button
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '×';
+            closeButton.style.cssText = `
+                position: absolute;
+                top: 5px;
+                right: 10px;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0;
+                margin: 0;
+            `;
+            closeButton.onclick = () => errorDiv.remove();
+            
+            errorDiv.textContent = message;
+            errorDiv.appendChild(closeButton);
+            document.body.appendChild(errorDiv);
+
+            // Add animation style
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translate(-50%, -60%); }
+                    to { opacity: 1; transform: translate(-50%, -50%); }
+                }
+                .error-message {
+                    backdrop-filter: blur(5px);
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.style.animation = 'fadeOut 0.3s ease-in';
+                    setTimeout(() => errorDiv.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        async function sendMessage() {
+            if (!isConnected) {
+                showError('Not connected to server');
+                return;
+            }
+
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessageToChat('user', message);
+            input.value = '';
+            
+            document.getElementById('chatLoading').style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: message })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to get response from server');
+                }
+
+                addMessageToChat('ai', data.answer);
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessageToChat('ai', 'Sorry, there was an error processing your request.');
+                showError(`Error: ${error.message}`);
+            }
+
+            document.getElementById('chatLoading').style.display = 'none';
+        }
+
+        async function generateImage() {
+            if (!isConnected) {
+                showError('Not connected to server');
+                return;
+            }
+
+            const prompt = document.getElementById('imagePrompt').value.trim();
+            if (!prompt) {
+                showError('Please enter an image description');
+                return;
+            }
+
+            const resultDiv = document.getElementById('imageResult');
+            resultDiv.innerHTML = '<div class="loading">Generating image...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/generate-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate image');
+                }
+
+                if (data.image_url) {
+                    const img = document.createElement('img');
+                    img.src = data.image_url;
+                    img.className = 'image-result';
+                    img.alt = prompt;
+                    resultDiv.innerHTML = '';
+                    resultDiv.appendChild(img);
+                } else {
+                    throw new Error('No image URL received');
+                }
+            } catch (error) {
+                console.error('Image generation error:', error);
+                resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                showError('Failed to generate image');
+            }
+        }
+
+        // Voice command functionality
+        let recognition;
+        let isListening = false;
+
+        function initializeVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript.toLowerCase();
+                    processVoiceCommand(command);
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    document.getElementById('voiceBtn').classList.remove('listening');
+                };
+            }
+        }
+
+        function toggleVoiceCommand() {
+            if (!recognition) {
+                initializeVoiceRecognition();
+            }
+
+            if (!isListening) {
+                recognition.start();
+                isListening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+            } else {
+                recognition.stop();
+                isListening = false;
+                document.getElementById('voiceBtn').classList.remove('listening');
+            }
+        }
+
+        function processVoiceCommand(command) {
+            if (command.includes('chat')) {
+                showService('chat');
+            } else if (command.includes('image')) {
+                showService('image');
+            } else if (command.includes('voice')) {
+                showService('voice');
+            } else {
+                document.getElementById('chatInput').value = command;
+                sendMessage();
+            }
+            document.getElementById('voiceResult').textContent = `Command: ${command}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConnection();
+            initializeVoiceRecognition();
+        });
+
+        // Add immediate connection check
+        checkConnection();
+
+        // Check connection more frequently at start
+        let checkCount = 0;
+        const connectionChecker = setInterval(() => {
+            checkConnection();
+            checkCount++;
+            if (checkCount >= 5 || isConnected) {
+                clearInterval(connectionChecker);
+                // Continue with normal 30s interval if needed
+                setInterval(checkConnection, 30000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
